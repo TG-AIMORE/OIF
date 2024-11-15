@@ -189,15 +189,10 @@ def host():
         conn, addr = server_socket.accept()
         print(f"Client connected from {addr}")
         
-        full_message = ''
-        while True:
-            part = conn.recv(1024).decode()  # Receive data in chunks
-            full_message += part
-            if len(part) < 1024:  # If the received part is smaller than the buffer size, it's the last chunk
-                break
-            print(full_message)
+        client_code = conn.recv(1024).decode()
+        print(client_code)
 
-        if full_message == join_code:
+        if client_code == join_code:
             print("connected!")
         else:
             print("join code was wrong")
@@ -213,8 +208,7 @@ def join():
         client_socket.connect((host_ip, PORT))
         print("Connected to the host!")
 
-        while True:
-            client_socket.send(code_input.encode())
+        client_socket.send(code_input.encode())
     except socket.error as e:
         print(f"Failed to connect: {e}")
 
