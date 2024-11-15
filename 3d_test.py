@@ -189,13 +189,15 @@ def host():
         conn, addr = server_socket.accept()
         print(f"Client connected from {addr}")
         
-        # Send the map, lighting data, etc., as needed
-        # For now, we'll just close after accepting the client for testing
-        conn.close()
+        client_code = conn.recv(1024).decode()
+        print(client_code)
+
+        if client_code == join_code:
+            print("connected!")
+        else:
+            print("join codewas wrong")
     except Exception as e:
         print(f"Error while hosting: {e}")
-    finally:
-        server_socket.close()
 
 def join():
     host_ip = input("Enter the host's IP: ")
@@ -205,9 +207,8 @@ def join():
     try:
         client_socket.connect((host_ip, PORT))
         print("Connected to the host!")
-        
-        # Receive map, lighting data, etc., as needed here
-        client_socket.close()
+
+        client_socket.send(code_input.encode())
     except socket.error as e:
         print(f"Failed to connect: {e}")
 
