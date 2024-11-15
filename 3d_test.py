@@ -199,7 +199,32 @@ def host():
     except Exception as e:
         print(f"Error while hosting: {e}")
 
-def join():
+def join(screen):
+    global start_screen, horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset
+
+    if blob_radius <= 45 and reset == False:
+        blob_radius += 0.075
+        if blob_radius >= 45:
+            reset = True
+    elif blob_radius >= 25:
+        blob_radius -= 0.075
+    else:
+        reset = False
+
+    screen.fill((0, 0, 0))
+
+    # Draw the color-changing blobs onto a temporary surface
+    temp_surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+    draw_blurred_blobs(temp_surface, blobs, blob_radius)
+
+    # Apply the blur effect to the temporary surface
+    blurred_surface = apply_blur(temp_surface)
+
+    # Draw the blurred surface onto the main screen
+    screen.blit(blurred_surface, (0, 0))
+
+    pygame.display.update()
+
     host_ip = input("Enter the host's IP: ")
     code_input = input("Enter the join code: ")
     
@@ -357,7 +382,7 @@ def start_screen_logic(screen):
                 pygame.quit()
                 quit()
             if join_button.collidepoint(event.pos):
-                join()
+                join(screen)
             if host_button.collidepoint(event.pos):
                 host()
 
