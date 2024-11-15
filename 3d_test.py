@@ -180,33 +180,36 @@ def host():
     # Start a socket server
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST_IP, PORT))
+
     server_socket.listen(1)
     print("Waiting for client to join...")
 
-    # Accept client connection
-    conn, addr = server_socket.accept()
-    print(f"Client connected from {addr}")
-    
-    # Send the map, light data, etc. here as needed
-    # For now, we'll just close after accepting the client for testing
-    conn.close()
+    try:
+        # Accept client connection
+        conn, addr = server_socket.accept()
+        print(f"Client connected from {addr}")
+        
+        # Send the map, lighting data, etc., as needed
+        # For now, we'll just close after accepting the client for testing
+        conn.close()
+    except Exception as e:
+        print(f"Error while hosting: {e}")
+    finally:
+        server_socket.close()
 
 def join():
     host_ip = input("Enter the host's IP: ")
     code_input = input("Enter the join code: ")
     
-    if code_input == join_code:
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            client_socket.connect((host_ip, PORT))
-            print("Connected to the host!")
-            
-            # Receive map, lighting data, etc., as needed here
-            client_socket.close()
-        except socket.error as e:
-            print(f"Failed to connect: {e}")
-    else:
-        print("Invalid join code. Connection refused.")
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        client_socket.connect((host_ip, PORT))
+        print("Connected to the host!")
+        
+        # Receive map, lighting data, etc., as needed here
+        client_socket.close()
+    except socket.error as e:
+        print(f"Failed to connect: {e}")
 
 def movement(posx, posy, rot, et, map_data):
     pressed_keys = pygame.key.get_pressed()
