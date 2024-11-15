@@ -193,9 +193,9 @@ def host():
         print(client_code)
 
         if client_code == join_code:
-            print("connected!")
+            print("Join code was correct!")
         else:
-            print("join code was wrong")
+            print("Join code was incorrect")
     except Exception as e:
         print(f"Error while hosting: {e}")
 
