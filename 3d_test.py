@@ -195,7 +195,7 @@ def host():
             full_message += part
             if len(part) < 1024:  # If the received part is smaller than the buffer size, it's the last chunk
                 break
-        print(full_message)
+            print(full_message)
 
         if full_message == join_code:
             print("connected!")
@@ -213,7 +213,8 @@ def join():
         client_socket.connect((host_ip, PORT))
         print("Connected to the host!")
 
-        client_socket.send(code_input.encode())
+        while True:
+            client_socket.send(code_input.encode())
     except socket.error as e:
         print(f"Failed to connect: {e}")
 
