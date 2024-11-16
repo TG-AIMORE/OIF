@@ -6,6 +6,10 @@ pause = False
 horizontal_res, vertical_res = 640, 360  #Default resolution
 screen_width, screen_height = 1280, 720  #Default screen size
 start_screen = True
+lan = False
+conn, addr = None
+client_socket = None
+hosting = False
 
 # Color blob settings
 num_blobs = 100  # Number of color blobs
@@ -13,6 +17,7 @@ blob_radius = random.randint(25, 75)  # Radius of each blob
 blob_speed = random.uniform(0.25, 0.45)  # Movement speed of each blob
 color_change_speed = random.uniform(0.0005, 0.001)  # Speed of color transition
 reset = False
+
 
 #LAN INIT
 try:
@@ -65,7 +70,7 @@ def draw_blurred_blobs(screen, blobs, blob_radius):
 
 #The main function starts everything in the program.
 def main():
-    global pause, horizontal_res, vertical_res, screen_width, screen_height, start_screen
+    global pause, horizontal_res, vertical_res, screen_width, screen_height, start_screen, conn, addr, client_socket
 
 
 
@@ -157,6 +162,29 @@ def main():
         fps = int(clock.get_fps())
         pygame.display.set_caption("Raycasting Test - FPS: " + str(fps))
 
+        if lan == True:
+            if hosting == True:
+                game_state = {
+                    "players": [
+                        {"x": 100, "y": 200, "rotation": 0, "damage": 10, "health": 100},
+                        {"x": 150, "y": 250, "rotation": 90, "damage": 15, "health": 120}
+                    ]
+                }               
+                conn.sendall(str(game_state).encode())
+
+                data = receive_data_host(conn)
+            else:
+                game_state = {
+                    "players": [
+                        {"x": 100, "y": 200, "rotation": 0, "damage": 10, "health": 100},
+                        {"x": 150, "y": 250, "rotation": 90, "damage": 15, "health": 120}
+                    ]
+                }
+                client_socket.send(str(game_state).encode())
+
+                data = receive_data_client(client_socket)
+            print(data)
+
     pygame.quit()
 
 def add_light_source(light_map, x, y, intensity, decay=0.1):
@@ -172,8 +200,37 @@ def add_light_source(light_map, x, y, intensity, decay=0.1):
                 if 0 <= light_x < light_map.shape[0] and 0 <= light_y < light_map.shape[1]:
                     light_map[light_x][light_y] = max(light_map[light_x][light_y], brightness)
 
+def receive_data_host(conn):
+    try:
+        while True:
+            data = conn.recv(1024).decode()  # Adjust buffer size (1024) as needed
+            if not data:
+                print("Client disconnected.")
+                break
+            
+            print(f"Received from client: {data}")
+            return data
+            # Handle the received data (e.g., parse JSON, update game state, etc.)
+    except Exception as e:
+        print(f"Error receiving data from client: {e}")
+
+def receive_data_client(client_socket):
+    try:
+        while True:
+            # Receive data from the host
+            data = client_socket.recv(1024).decode()  # Adjust buffer size (1024) as needed
+            if not data:
+                print("Host disconnected.")
+                break
+            
+            print(f"Received from host: {data}")
+            return data
+            # Handle the received data (e.g., parse JSON, update game state, etc.)
+    except Exception as e:
+        print(f"Error receiving data from host: {e}")
+
 def host():
-    global HOST_IP, PORT, join_code
+    global HOST_IP, PORT, join_code, conn, addr, hosting, lan
     join_code = str(random.randint(1000, 9999))  # Random 4-digit code for joining
     print(f"Hosting on {HOST_IP}:{PORT} with join code: {join_code}")
 
@@ -194,13 +251,14 @@ def host():
 
         if client_code == join_code:
             print("Join code was correct!")
+            lan, hosting = True
         else:
             print("Join code was incorrect")
     except Exception as e:
         print(f"Error while hosting: {e}")
 
 def join(screen):
-    global horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset
+    global horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset, lan, client_socket
 
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -312,14 +370,14 @@ def join(screen):
 
         pygame.display.flip()
 
-    print(host_ip)
-    print(code_input)
     try:
         print(host_ip)
         client_socket.connect((host_ip, PORT))
         print("Connected to the host!")
 
         client_socket.send(str(code_input).encode())
+        lan = True
+        return
     except socket.error as e:
         print(f"Failed to connect: {e}")
 
