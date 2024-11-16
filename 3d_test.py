@@ -201,12 +201,16 @@ def host():
 
 def join(screen):
     global horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset
-    code_input = input("Enter the join code: ")
 
-    input_box = pygame.Rect(screen_width // 2 - 75, screen_height // 4 + 50, 150, 25)
+    input_box = pygame.Rect(screen_width // 2 - 75, screen_height // 4 + 60, 150, 25)
+    input_box2 = pygame.Rect(screen_width // 2 - 75, screen_height // 4 + 180, 150, 25)
     color = (255, 255, 255)
+    color2 = (255, 255, 255)
     active = False
+    active2 = False
     text = ''
+    code_input = ''
+    host_ip = ''
 
     contin = False
 
@@ -216,10 +220,17 @@ def join(screen):
                 pygame.quit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if input_box.collidepoint(event.pos):
-                    active = not active
+                    active = True
+                    color = (52, 177, 235)
                 else:
                     active = False
-                color = (52, 177, 235) if active else color
+                    color = (255, 255, 255)
+                if input_box2.collidepoint(event.pos):
+                    active2 = True
+                    color2 = (52, 177, 235)
+                else:
+                    active2 = False
+                    color2 = (255, 255, 255)
             if event.type == pygame.KEYDOWN:
                 if active:
                     if event.key == pygame.K_RETURN:
@@ -232,6 +243,16 @@ def join(screen):
                         text = text[:-1]
                     else:
                         text += event.unicode
+                elif active2:
+                    if event.key == pygame.K_RETURN:
+                        print(f"Entered: {code_input}")
+                        code_input = ''
+                        contin = True
+                        break
+                    elif event.key == pygame.K_BACKSPACE:
+                        code_input = code_input[:-1]
+                    else:
+                        code_input += event.unicode
 
         if blob_radius <= 45 and reset == False:
             blob_radius += 0.075
@@ -265,14 +286,31 @@ def join(screen):
         title_text = font.render("Enter host's ip:", True, (255, 255, 255))
         screen.blit(title_text, (screen_width // 2 - title_text.get_width() // 2, screen_height // 4 + 20))
 
-        back = pygame.Rect(screen_width // 2 - 75, screen_height // 4 + 50, 150, 25)
+        back = pygame.Rect(screen_width // 2 - 75, screen_height // 4 + 60, 150, 25)
         pygame.draw.rect(screen, (255, 255, 255), back)
 
         font = pygame.font.Font(None, 20)
 
-        txt_surface = font.render(text, True, color)
+        txt_surface = font.render(text, True, (0, 0, 0))
         screen.blit(txt_surface, (input_box.x+5, input_box.y+5))
+
         pygame.draw.rect(screen, color, input_box, 2)
+
+        font = pygame.font.SysFont('Arial', 25)
+
+        title_text = font.render("Enter game code:", True, (255, 255, 255))
+        screen.blit(title_text, (screen_width // 2 - title_text.get_width() // 2, screen_height // 4 + 140))
+
+        back2 = pygame.Rect(screen_width // 2 - 75, screen_height // 4 + 180, 150, 25)
+        pygame.draw.rect(screen, (255, 255, 255), back2)
+
+        font = pygame.font.Font(None, 20)
+
+        txt_surface = font.render(code_input, True, (0, 0, 0))
+        screen.blit(txt_surface, (input_box2.x+5, input_box2.y+5))
+
+        pygame.draw.rect(screen, color2, input_box2, 2)
+
         pygame.display.flip()
     
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
