@@ -7,9 +7,8 @@ horizontal_res, vertical_res = 640, 360  #Default resolution
 screen_width, screen_height = 1280, 720  #Default screen size
 start_screen = True
 lan = False
-conn = None
-addr = None
-client_socket = None
+conn, addr = (), ()
+conn, addr = ()
 hosting = False
 
 # Color blob settings
