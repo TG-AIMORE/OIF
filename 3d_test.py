@@ -1,4 +1,4 @@
-import pygame, numba, random, colorsys, math, socket, sys
+import pygame, numba, random, colorsys, math, socket, sys, json
 import numpy as np
 
 #Global Variables
@@ -163,28 +163,34 @@ def main():
         fps = int(clock.get_fps())
         pygame.display.set_caption("Raycasting Test - FPS: " + str(fps))
 
-        if lan == True:
-            if hosting == True:
-                game_state = {
-                    "players": [
-                        {"x": 100, "y": 200, "rotation": 0, "damage": 10, "health": 100},
-                        {"x": 150, "y": 250, "rotation": 90, "damage": 15, "health": 120}
-                    ]
-                }               
-                conn.sendall(str(game_state).encode())
+        game_state = {
+            "players": [
+                {"x": 100, "y": 200, "rotation": 0, "damage": 10, "health": 100},
+                {"x": 150, "y": 250, "rotation": 90, "damage": 15, "health": 120}
+            ]
+            }   
+        if lan:
+            try:
+                if hosting:
+                    # Send game state
+                    conn.sendall(json.dumps(game_state).encode())
+        
+                    # Receive updated state from the client
+                    received_data = receive_data_host(conn)
+                    if received_data:
+                        print(f"Updated state from client: {received_data}")
+                else:
+                    # Send game state
+                    client_socket.send(json.dumps(game_state).encode())
+        
+                    # Receive updated state from the host
+                    received_data = receive_data_client(client_socket)
+                    if received_data:
+                        print(f"Updated state from host: {received_data}")
+            except Exception as e:
+                print(f"Error during LAN communication: {e}")
+                lan = False  # Exit LAN mode on error
 
-                data = receive_data_host(conn)
-            else:
-                game_state = {
-                    "players": [
-                        {"x": 100, "y": 200, "rotation": 0, "damage": 10, "health": 100},
-                        {"x": 150, "y": 250, "rotation": 90, "damage": 15, "health": 120}
-                    ]
-                }
-                client_socket.send(str(game_state).encode())
-
-                data = receive_data_client(client_socket)
-            print(data)
 
     pygame.quit()
 
@@ -203,32 +209,29 @@ def add_light_source(light_map, x, y, intensity, decay=0.1):
 
 def receive_data_host(conn):
     try:
-        while True:
-            data = conn.recv(1024).decode()  # Adjust buffer size (1024) as needed
-            if not data:
-                print("Client disconnected.")
-                break
-            
+        conn.settimeout(0.1)  # Avoid blocking indefinitely
+        data = conn.recv(1024).decode()  # Adjust buffer size as needed
+        if data:
             print(f"Received from client: {data}")
-            return data
-            # Handle the received data (e.g., parse JSON, update game state, etc.)
+            return json.loads(data)  # Parse JSON data
+    except socket.timeout:
+        return None  # No data received
     except Exception as e:
         print(f"Error receiving data from client: {e}")
+        return None
 
 def receive_data_client(client_socket):
     try:
-        while True:
-            # Receive data from the host
-            data = client_socket.recv(1024).decode()  # Adjust buffer size (1024) as needed
-            if not data:
-                print("Host disconnected.")
-                break
-            
+        client_socket.settimeout(0.1)  # Avoid blocking indefinitely
+        data = client_socket.recv(1024).decode()  # Adjust buffer size as needed
+        if data:
             print(f"Received from host: {data}")
-            return data
-            # Handle the received data (e.g., parse JSON, update game state, etc.)
+            return json.loads(data)  # Parse JSON data
+    except socket.timeout:
+        return None  # No data received
     except Exception as e:
         print(f"Error receiving data from host: {e}")
+        return None
 
 def host():
     global HOST_IP, PORT, join_code, conn, addr, hosting, lan
