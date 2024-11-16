@@ -1,4 +1,4 @@
-import pygame, numba, random, colorsys, math, socket
+import pygame, numba, random, colorsys, math, socket, sys
 import numpy as np
 
 #Global Variables
@@ -200,33 +200,80 @@ def host():
         print(f"Error while hosting: {e}")
 
 def join(screen):
-    global start_screen, horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset
-
-    if blob_radius <= 45 and reset == False:
-        blob_radius += 0.075
-        if blob_radius >= 45:
-            reset = True
-    elif blob_radius >= 25:
-        blob_radius -= 0.075
-    else:
-        reset = False
-
-    screen.fill((0, 0, 0))
-
-    # Draw the color-changing blobs onto a temporary surface
-    temp_surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
-    draw_blurred_blobs(temp_surface, blobs, blob_radius)
-
-    # Apply the blur effect to the temporary surface
-    blurred_surface = apply_blur(temp_surface)
-
-    # Draw the blurred surface onto the main screen
-    screen.blit(blurred_surface, (0, 0))
-
-    pygame.display.update()
-
-    host_ip = input("Enter the host's IP: ")
+    global horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset
     code_input = input("Enter the join code: ")
+
+    input_box = pygame.Rect(screen_width // 2 - 75, screen_height // 4 + 50, 150, 25)
+    color = (255, 255, 255)
+    active = False
+    text = ''
+
+    contin = False
+
+    while contin == False:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if input_box.collidepoint(event.pos):
+                    active = not active
+                else:
+                    active = False
+                color = (52, 177, 235) if active else color
+            if event.type == pygame.KEYDOWN:
+                if active:
+                    if event.key == pygame.K_RETURN:
+                        print(f"Entered: {text}")
+                        text = ''
+                        host_ip = text
+                        contin = True
+                        break
+                    elif event.key == pygame.K_BACKSPACE:
+                        text = text[:-1]
+                    else:
+                        text += event.unicode
+
+        if blob_radius <= 45 and reset == False:
+            blob_radius += 0.075
+            if blob_radius >= 45:
+                reset = True
+        elif blob_radius >= 25:
+            blob_radius -= 0.075
+        else:
+            reset = False
+
+        screen.fill((0, 0, 0))
+
+        # Draw the color-changing blobs onto a temporary surface
+        temp_surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+        draw_blurred_blobs(temp_surface, blobs, blob_radius)
+
+        # Apply the blur effect to the temporary surface
+        blurred_surface = apply_blur(temp_surface)
+
+        # Draw the blurred surface onto the main screen
+        screen.blit(blurred_surface, (0, 0))
+
+
+        font = pygame.font.SysFont('Arial', 40)
+
+        title_text = font.render("Join Game", True, (255, 255, 255))
+        screen.blit(title_text, (screen_width // 2 - title_text.get_width() // 2, screen_height // 4 - 30))
+
+        font = pygame.font.SysFont('Arial', 25)
+
+        title_text = font.render("Enter host's ip:", True, (255, 255, 255))
+        screen.blit(title_text, (screen_width // 2 - title_text.get_width() // 2, screen_height // 4 + 20))
+
+        back = pygame.Rect(screen_width // 2 - 75, screen_height // 4 + 50, 150, 25)
+        pygame.draw.rect(screen, (255, 255, 255), back)
+
+        font = pygame.font.Font(None, 20)
+
+        txt_surface = font.render(text, True, color)
+        screen.blit(txt_surface, (input_box.x+5, input_box.y+5))
+        pygame.draw.rect(screen, color, input_box, 2)
+        pygame.display.flip()
     
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
