@@ -232,6 +232,9 @@ def receive_data_client(client_socket):
 
 def host():
     global HOST_IP, PORT, join_code, conn, addr, hosting, lan
+
+    lan = True
+
     join_code = str(random.randint(1000, 9999))  # Random 4-digit code for joining
     print(f"Hosting on {HOST_IP}:{PORT} with join code: {join_code}")
 
@@ -272,6 +275,8 @@ def join(screen):
     host_ip = ''
     code_input = ''
     host_ip = ''
+
+    lan = True
 
     contin = False
 
@@ -377,7 +382,6 @@ def join(screen):
         print("Connected to the host!")
 
         client_socket.send(str(code_input).encode())
-        lan = True
         return
     except socket.error as e:
         print(f"Failed to connect: {e}")
