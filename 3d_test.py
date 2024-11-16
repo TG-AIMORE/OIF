@@ -68,7 +68,7 @@ def draw_blurred_blobs(screen, blobs, blob_radius):
 
 #The main function starts everything in the program.
 def main():
-    global pause, horizontal_res, vertical_res, screen_width, screen_height, start_screen, conn, addr, client_socket
+    global pause, horizontal_res, vertical_res, screen_width, screen_height, start_screen, conn, addr, client_socket, lan
 
 
 
@@ -528,8 +528,10 @@ def start_screen_logic(screen):
                 quit()
             if join_button.collidepoint(event.pos):
                 join(screen)
+                start_screen = False
             if host_button.collidepoint(event.pos):
                 host()
+                start_screen = False
 
     pygame.display.update()
 
