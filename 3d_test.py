@@ -202,13 +202,15 @@ def host():
 def join(screen):
     global horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset
 
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     input_box = pygame.Rect(screen_width // 2 - 75, screen_height // 4 + 60, 150, 25)
     input_box2 = pygame.Rect(screen_width // 2 - 75, screen_height // 4 + 180, 150, 25)
     color = (255, 255, 255)
     color2 = (255, 255, 255)
     active = False
     active2 = False
-    text = ''
+    host_ip = ''
     code_input = ''
     host_ip = ''
 
@@ -234,19 +236,16 @@ def join(screen):
             if event.type == pygame.KEYDOWN:
                 if active:
                     if event.key == pygame.K_RETURN:
-                        print(f"Entered: {text}")
-                        text = ''
-                        host_ip = text
+                        print(f"Entered: {host_ip}")
                         contin = True
                         break
                     elif event.key == pygame.K_BACKSPACE:
-                        text = text[:-1]
+                        host_ip = host_ip[:-1]
                     else:
-                        text += event.unicode
+                        host_ip += event.unicode
                 elif active2:
                     if event.key == pygame.K_RETURN:
                         print(f"Entered: {code_input}")
-                        code_input = ''
                         contin = True
                         break
                     elif event.key == pygame.K_BACKSPACE:
@@ -291,7 +290,7 @@ def join(screen):
 
         font = pygame.font.Font(None, 20)
 
-        txt_surface = font.render(text, True, (0, 0, 0))
+        txt_surface = font.render(host_ip, True, (0, 0, 0))
         screen.blit(txt_surface, (input_box.x+5, input_box.y+5))
 
         pygame.draw.rect(screen, color, input_box, 2)
@@ -312,13 +311,15 @@ def join(screen):
         pygame.draw.rect(screen, color2, input_box2, 2)
 
         pygame.display.flip()
-    
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    print(host_ip)
+    print(code_input)
     try:
+        print(host_ip)
         client_socket.connect((host_ip, PORT))
         print("Connected to the host!")
 
-        client_socket.send(code_input.encode())
+        client_socket.send(str(code_input).encode())
     except socket.error as e:
         print(f"Failed to connect: {e}")
 
