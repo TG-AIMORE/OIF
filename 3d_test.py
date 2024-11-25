@@ -260,6 +260,8 @@ def host():
             print("Join code was incorrect")
     except Exception as e:
         print(f"Error while hosting: {e}")
+    
+    
 
 def join(screen):
     global horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset, lan, client_socket
