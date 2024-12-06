@@ -1,5 +1,7 @@
-import pygame, numba, random, colorsys, math, socket, sys, json
+import pygame, numba, random, colorsys, math, socket, sys, json, threading
 import numpy as np
+
+global hosting
 
 #Global Variables
 pause = False
@@ -68,7 +70,7 @@ def draw_blurred_blobs(screen, blobs, blob_radius):
 
 #The main function starts everything in the program.
 def main():
-    global pause, horizontal_res, vertical_res, screen_width, screen_height, start_screen, conn, addr, client_socket, lan
+    global pause, horizontal_res, vertical_res, screen_width, screen_height, start_screen, conn, addr, client_socket, lan, hosting
 
 
 
@@ -160,36 +162,40 @@ def main():
         fps = int(clock.get_fps())
         pygame.display.set_caption("Raycasting Test - FPS: " + str(fps))
 
-        game_state = {
-            "players": [
-                {"x": 100, "y": 200, "rotation": 0, "damage": 10, "health": 100},
-                {"x": 150, "y": 250, "rotation": 90, "damage": 15, "health": 120}
-            ]
-            }   
-        if lan:
-            try:
-                if hosting:
-                    # Send game state
-                    conn.sendall(json.dumps(game_state).encode())
-        
-                    # Receive updated state from the client
-                    received_data = receive_data_host(conn)
-                    if received_data:
-                        print(f"Updated state from client: {received_data}")
-                else:
-                    # Send game state
-                    client_socket.send(json.dumps(game_state).encode())
-        
-                    # Receive updated state from the host
-                    received_data = receive_data_client(client_socket)
-                    if received_data:
-                        print(f"Updated state from host: {received_data}")
-            except Exception as e:
-                print(f"Error during LAN communication: {e}")
-                lan = False  # Exit LAN mode on error
+        game_state = [pos_x, pos_y, rotation]   
+        if lan == True:
+            update_lan_thread(game_state, hosting)
 
 
     pygame.quit()
+
+def update_lan_thread(game_state, hosting):
+    lan_thread = threading.Thread(target=update_lan, args=(game_state, hosting,), daemon=True)
+    lan_thread.start()
+    return lan_thread
+
+def update_lan(game_state, hosting):
+    global client_socket
+    try:
+        if hosting == True:
+            # Send game state
+            conn.sendall(json.dumps(game_state).encode())
+
+            # Receive updated state from the client
+            received_data = receive_data_host(conn)
+            if received_data:
+                print(f"Updated state from client: {received_data}")
+        else:
+            # Send game state
+            client_socket.send(json.dumps(game_state).encode())
+
+            # Receive updated state from the host
+            received_data = receive_data_client(client_socket)
+            if received_data:
+                print(f"Updated state from host: {received_data}")
+    except Exception as e:
+        print(f"Error during LAN communication: {e}")
+        lan = False  # Exit LAN mode on error
 
 def add_light_source(light_map, x, y, intensity, decay=0.1):
     """Add a light source and propagate its brightness."""
@@ -233,6 +239,8 @@ def receive_data_client(client_socket):
 def host():
     global HOST_IP, PORT, join_code, conn, addr, hosting, lan
 
+    hosting = True
+
     lan = True
 
     join_code = str(random.randint(1000, 9999))  # Random 4-digit code for joining
@@ -264,7 +272,9 @@ def host():
     
 
 def join(screen):
-    global horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset, lan, client_socket
+    global horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset, lan, client_socket, hosting
+
+    hosting = False
 
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
