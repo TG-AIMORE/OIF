@@ -146,8 +146,10 @@ def main():
             clint = menu.start_screen_logic(screen, screen_width, screen_height)
             if clint == True:
                 join(screen)
+                start_screen = False
             if clint == False:
                 host()
+                start_screen = False
             continue
 
         if health <= 0:
