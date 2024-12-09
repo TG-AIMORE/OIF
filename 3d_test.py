@@ -1,4 +1,4 @@
-import pygame, numba, random, colorsys, math, socket, sys, json, threading
+import pygame, numba, random, colorsys, math, socket, sys, json, threading, math, time, menu
 import numpy as np
 
 global hosting
@@ -72,8 +72,6 @@ def draw_blurred_blobs(screen, blobs, blob_radius):
 def main():
     global pause, horizontal_res, vertical_res, screen_width, screen_height, start_screen, conn, addr, client_socket, lan, hosting
 
-
-
     pygame.init()  #Start the pygame library, which helps create games.
     screen = pygame.display.set_mode((screen_width, screen_height))  #Make a screen that’s 1280x720 pixels.
     running = True
@@ -85,6 +83,9 @@ def main():
 
     #Player Position and Rotation (direction player is facing)
     pos_x, pos_y, rotation = 5, 5, 180  #Player starts near the center of the map.
+    health = 100
+
+    player_plane = (0.0, 0.66)
 
     #Frame buffer to hold the image before showing it on the screen
     current_frame = np.zeros((horizontal_res, vertical_res * 2, 3))
@@ -101,6 +102,8 @@ def main():
 
     wall_texture = pygame.image.load('wall.jpg')
     wall_texture = pygame.surfarray.array3d(pygame.transform.scale(wall_texture, (horizontal_res * 2, vertical_res * 4))) / 255
+
+    barrel_texture = pygame.image.load("barrel.png").convert_alpha()
 
     #Define a simple map where 1 is a wall, and 0 is open space
     map_data = np.array([
@@ -132,14 +135,25 @@ def main():
         if pause:
             pygame.mouse.set_visible(True)
             pygame.event.set_grab(False)
-            pause_menu(screen)
+            menu.pause_menu(screen)
             continue  #Skip the rest of the game logic when paused
 
         #Show the start screen if it's the start of the game
         if start_screen:
             pygame.mouse.set_visible(True)
             pygame.event.set_grab(False)
-            start_screen_logic(screen)
+            clint = None
+            clint = menu.start_screen_logic(screen, screen_width, screen_height)
+            if clint == True:
+                join(screen)
+            if clint == False:
+                host()
+            continue
+
+        if health <= 0:
+            pygame.mouse.set_visible(True)
+            pygame.event.set_grab(False)
+            menu.death_screen(screen, screen_width, screen_height)
             continue
 
         pygame.mouse.set_visible(False)
@@ -149,10 +163,12 @@ def main():
         frame = render_frame(pos_x, pos_y, rotation, current_frame, sky, floor, wall_texture, lamp_texture,
                              horizontal_res, vertical_res, fov, fov_value, map_data, light_map)
 
+
         #Convert the frame into an image for pygame and display it on the screen
         surf = pygame.surfarray.make_surface(frame * 255)
         surf = pygame.transform.scale(surf, (screen_width, screen_height))
         screen.blit(surf, (0, 0))
+
         pygame.display.update()
 
         #Update player position and rotation based on keys pressed
@@ -165,7 +181,6 @@ def main():
         game_state = [pos_x, pos_y, rotation]   
         if lan == True:
             update_lan_thread(game_state, hosting)
-
 
     pygame.quit()
 
@@ -476,81 +491,6 @@ def apply_blur(surface, scale_factor=0.3):
     small_surface = pygame.transform.smoothscale(surface, 
                     (int(screen_width * scale_factor), int(screen_height * scale_factor)))
     return pygame.transform.smoothscale(small_surface, (screen_width, screen_height))
-
-def start_screen_logic(screen):
-    global start_screen, horizontal_res, vertical_res, num_blobs, blob_radius, blob_speed, color_change_speed, reset
-
-    if blob_radius <= 45 and reset == False:
-        blob_radius += 0.075
-        if blob_radius >= 45:
-            reset = True
-    elif blob_radius >= 25:
-        blob_radius -= 0.075
-    else:
-        reset = False
-
-    screen.fill((0, 0, 0))
-
-    # Draw the color-changing blobs onto a temporary surface
-    temp_surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
-    draw_blurred_blobs(temp_surface, blobs, blob_radius)
-
-    # Apply the blur effect to the temporary surface
-    blurred_surface = apply_blur(temp_surface)
-
-    # Draw the blurred surface onto the main screen
-    screen.blit(blurred_surface, (0, 0))
-
-    font = pygame.font.SysFont('Arial', 30)
-
-    #Display Start Screen Title
-    title_text = font.render("OIF", True, (255, 255, 255))
-    screen.blit(title_text, (screen_width // 2 - title_text.get_width() // 2, screen_height // 4 - 30))
-
-    #Start Game Button
-    start_button = pygame.Rect(440, 280, 400, 50)
-    pygame.draw.rect(screen, (42, 212, 65), start_button, 0, 4)
-    start_text = font.render("Freeplay", True, (255, 255, 255))
-    screen.blit(start_text, (start_button.centerx - start_text.get_width() // 2, start_button.centery - start_text.get_height() // 2))
-
-    #Host Game Button
-    host_button = pygame.Rect(440, 360, 400, 50)
-    pygame.draw.rect(screen, (52, 177, 235), host_button, 0, 4)
-    host_text = font.render("Host", True, (255, 255, 255))
-    screen.blit(host_text, (host_button.centerx - host_text.get_width() // 2, host_button.centery - host_text.get_height() // 2))
-
-    #Join Game Button
-    join_button = pygame.Rect(440, 440, 400, 50)
-    pygame.draw.rect(screen, (37, 125, 184), join_button, 0, 4)
-    join_text = font.render("Join", True, (255, 255, 255))
-    screen.blit(join_text, (join_button.centerx - join_text.get_width() // 2, join_button.centery - join_text.get_height() // 2))
-
-    #Quit Game Button
-    quit_button = pygame.Rect(440, 520, 400, 50)
-    pygame.draw.rect(screen, (212, 42, 42), quit_button, 0, 4)
-    quit_text = font.render("Quit", True, (255, 255, 255))
-    screen.blit(quit_text, (quit_button.centerx - quit_text.get_width() // 2, quit_button.centery - quit_text.get_height() // 2))
-
-    #Handle user input on the start screen
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            quit()
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if start_button.collidepoint(event.pos):
-                start_screen = False  #Start the game
-            if quit_button.collidepoint(event.pos):
-                pygame.quit()
-                quit()
-            if join_button.collidepoint(event.pos):
-                join(screen)
-                start_screen = False
-            if host_button.collidepoint(event.pos):
-                host()
-                start_screen = False
-
-    pygame.display.update()
-
 
 @numba.njit(parallel=True)
 def render_frame(pos_x, pos_y, rotation, frame, sky_texture, floor_texture, wall_texture, lamp_texture,
