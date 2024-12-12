@@ -70,7 +70,7 @@ def draw_blurred_blobs(screen, blobs, blob_radius):
 
 #The main function starts everything in the program.
 def main():
-    global pause, horizontal_res, vertical_res, screen_width, screen_height, start_screen, conn, addr, client_socket, lan, hosting
+    global pause, horizontal_res, vertical_res, screen_width, screen_height, start_screen, conn, addr, client_socket, lan, hosting, received_data
 
     pygame.init()  #Start the pygame library, which helps create games.
     screen = pygame.display.set_mode((screen_width, screen_height))  #Make a screen that’s 1280x720 pixels.
@@ -103,7 +103,10 @@ def main():
     wall_texture = pygame.image.load('wall.jpg')
     wall_texture = pygame.surfarray.array3d(pygame.transform.scale(wall_texture, (horizontal_res * 2, vertical_res * 4))) / 255
 
-    barrel_texture = pygame.image.load("barrel.png").convert_alpha()
+    barrel_texture = pygame.image.load("barrel.png")
+    barrel_texture_size = np.asarray(barrel_texture.get_size())
+
+    barrelX, barrelY = 5.5, 5.5
 
     #Define a simple map where 1 is a wall, and 0 is open space
     map_data = np.array([
@@ -131,11 +134,18 @@ def main():
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
                 pause = not pause  #Toggle pause when P is pressed
 
+        try:
+            game_state = [pos_x, pos_y, rotation]   
+            if lan == True:
+                update_lan_thread(game_state, hosting)
+        except Exception as e:
+            print(f"Error with lan: {e}")
+
         #If the game is paused, show the pause menu
         if pause:
             pygame.mouse.set_visible(True)
             pygame.event.set_grab(False)
-            menu.pause_menu(screen)
+            pause_menu(screen)
             continue  #Skip the rest of the game logic when paused
 
         #Show the start screen if it's the start of the game
@@ -149,6 +159,8 @@ def main():
                 start_screen = False
             if clint == False:
                 host()
+                start_screen = False
+            if clint == 'start':
                 start_screen = False
             continue
 
@@ -164,12 +176,23 @@ def main():
         #Render frame (create the 3D image from the map and textures)
         frame = render_frame(pos_x, pos_y, rotation, current_frame, sky, floor, wall_texture, lamp_texture,
                              horizontal_res, vertical_res, fov, fov_value, map_data, light_map)
-
-
+        
         #Convert the frame into an image for pygame and display it on the screen
         surf = pygame.surfarray.make_surface(frame * 255)
         surf = pygame.transform.scale(surf, (screen_width, screen_height))
+
         screen.blit(surf, (0, 0))
+
+        try:
+            p2_x = received_data[0]
+            p2_y = received_data[1]
+        except:
+            pass
+
+        try:
+            sprite(screen, p2_x, p2_y, pos_x, pos_y, rotation, barrel_texture, barrel_texture_size)
+        except Exception as e:
+            print(f"Calling sprite render error: {e}")
 
         pygame.display.update()
 
@@ -180,11 +203,24 @@ def main():
         fps = int(clock.get_fps())
         pygame.display.set_caption("Raycasting Test - FPS: " + str(fps))
 
-        game_state = [pos_x, pos_y, rotation]   
-        if lan == True:
-            update_lan_thread(game_state, hosting)
-
     pygame.quit()
+
+def sprite(screen, x, y, pos_x, pos_y, rotation, texture, texture_size):
+    try:
+        angle = np.arctan((y-pos_y)/(x-pos_x))
+        if abs(pos_x+np.cos(angle)-x) > abs(pos_x-x):
+            angle = (angle-np.pi)%(2*np.pi)
+        anglediff = (rotation-angle) % (2*np.pi)
+        if anglediff > 11*np.pi/6 or anglediff < np.pi/6:
+            dist = np.sqrt((pos_x-x)**2+(pos_y-y)**2)
+            cos2 = np.cos(anglediff)
+            scaling = min(1/dist, 2)/cos2
+            vert = (screen_height/2) + (screen_height/2)*scaling - scaling*texture_size[1]
+            hor = (screen_width/2) - screen_width*np.sin(anglediff) - scaling*texture_size[0]
+            spsurf = pygame.transform.scale(texture, scaling*texture_size)
+            screen.blit(spsurf, (hor, vert))
+    except Exception as e:
+        print(f"Sprite render error: {e}")
 
 def update_lan_thread(game_state, hosting):
     lan_thread = threading.Thread(target=update_lan, args=(game_state, hosting,), daemon=True)
@@ -192,7 +228,7 @@ def update_lan_thread(game_state, hosting):
     return lan_thread
 
 def update_lan(game_state, hosting):
-    global client_socket
+    global client_socket, received_data
     try:
         if hosting == True:
             # Send game state

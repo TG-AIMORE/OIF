@@ -127,6 +127,7 @@ def start_screen_logic(screen, screen_width, screen_height):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if start_button.collidepoint(event.pos):
                 start_screen = False  #Start the game
+                return 'start'
             if quit_button.collidepoint(event.pos):
                 pygame.quit()
                 quit()
