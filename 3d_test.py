@@ -1,4 +1,4 @@
-import pygame, numba, random, colorsys, math, socket, sys, json, threading, math, time, menu
+import pygame, numba, random, colorsys, math, socket, sys, json, threading, math, time, menu, spritesheet
 import numpy as np
 
 global hosting
@@ -106,7 +106,18 @@ def main():
     barrel_texture = pygame.image.load("barrel.png")
     barrel_texture_size = np.asarray(barrel_texture.get_size())
 
-    barrelX, barrelY = 5.5, 5.5
+    ss = spritesheet.spritesheet('./hud/PIST2.png')
+    # Sprite is 16x16 pixels at location 0,0 in the file...
+    #image = ss.image_at((0, 0, 82, 119), colorkey=(91, 110, 225))
+    
+    images = []
+    images = ss.images_at([(0, 0, 82, 119),(83, 0, 82,119)], colorkey=(91, 110, 225))
+
+    trigger = False
+    tim = 1
+
+    pist_norm = pygame.transform.scale(images[0], (320, 320))
+    pist_shoot = pygame.transform.scale(images[1], (320, 320))
 
     #Define a simple map where 1 is a wall, and 0 is open space
     map_data = np.array([
@@ -133,6 +144,9 @@ def main():
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
                 pause = not pause  #Toggle pause when P is pressed
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                trigger = True
+
 
         try:
             game_state = [pos_x, pos_y, rotation]   
@@ -183,6 +197,16 @@ def main():
 
         screen.blit(surf, (0, 0))
 
+        screen.blit(pist_shoot, (990, 400)) if trigger else screen.blit(pist_norm, (990, 400))
+
+        dt = clock.tick() / 500
+
+        if tim > 0 and trigger == True:
+            tim = tim - dt
+        else:
+            trigger = False 
+            tim = 1
+
         try:
             p2_x = received_data[0]
             p2_y = received_data[1]
@@ -197,7 +221,7 @@ def main():
         pygame.display.update()
 
         #Update player position and rotation based on keys pressed
-        pos_x, pos_y, rotation = movement(pos_x, pos_y, rotation, clock.tick() / 500, map_data)
+        pos_x, pos_y, rotation = movement(pos_x, pos_y, rotation, dt, map_data)
 
         #Display the Frames Per Second (FPS) in the window title
         fps = int(clock.get_fps())
