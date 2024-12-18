@@ -84,6 +84,9 @@ def main():
     #Player Position and Rotation (direction player is facing)
     pos_x, pos_y, rotation = 5, 5, 180  #Player starts near the center of the map.
     health = 100
+    damage = 0
+    p2_health = 100
+    dmg_dealt = 0
 
     player_plane = (0.0, 0.66)
 
@@ -106,18 +109,28 @@ def main():
     barrel_texture = pygame.image.load("barrel.png")
     barrel_texture_size = np.asarray(barrel_texture.get_size())
 
-    ss = spritesheet.spritesheet('./hud/PIST2.png')
+    ss = spritesheet.spritesheet('./hud/pistol.png')
+    p2 = spritesheet.spritesheet('./hud/player2.png')
     # Sprite is 16x16 pixels at location 0,0 in the file...
     #image = ss.image_at((0, 0, 82, 119), colorkey=(91, 110, 225))
     
-    images = []
-    images = ss.images_at([(0, 0, 82, 119),(83, 0, 82,119)], colorkey=(91, 110, 225))
+    pistol_hud = []
+    pistol_hud = ss.images_at([(0, 0, 120, 145),(490, 0, 120, 145)], colorkey=-1)
+
+    player2 = []
+    player2 = p2.images_at([(0, 0, 90, 190),(0, 191, 90, 200)], colorkey=-1)
 
     trigger = False
-    tim = 1
+    tim = 0.25
 
-    pist_norm = pygame.transform.scale(images[0], (320, 320))
-    pist_shoot = pygame.transform.scale(images[1], (320, 320))
+    pist_norm = pygame.transform.scale(pistol_hud[0], (320, 320))
+    pist_shoot = pygame.transform.scale(pistol_hud[1], (320, 320))
+
+    player2_norm = pygame.transform.scale(player2[0], (180, 380))
+    player2_norm_size = np.asarray(player2_norm.get_size())
+
+    player2_shoot = pygame.transform.scale(player2[1], (180, 380))
+    player2_shoot_size = np.asarray(player2_shoot.get_size())
 
     #Define a simple map where 1 is a wall, and 0 is open space
     map_data = np.array([
@@ -145,11 +158,12 @@ def main():
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
                 pause = not pause  #Toggle pause when P is pressed
             if event.type == pygame.MOUSEBUTTONDOWN:
-                trigger = True
-
+                if tim >= 0.25:
+                    trigger = True 
+                    
 
         try:
-            game_state = [pos_x, pos_y, rotation]   
+            game_state = [pos_x, pos_y, rotation, damage, health]   
             if lan == True:
                 update_lan_thread(game_state, hosting)
         except Exception as e:
@@ -197,26 +211,36 @@ def main():
 
         screen.blit(surf, (0, 0))
 
-        screen.blit(pist_shoot, (990, 400)) if trigger else screen.blit(pist_norm, (990, 400))
+        try:
+            p2_x = received_data[0]
+            p2_y = received_data[1]
+            p2_rotaion = received_data[2]
+            dmg_dealt = received_data[3]
+            p2_health = received_data[4]
+
+            if dmg_dealt > 0:
+                health = health - dmg_dealt
+                dmg_dealt = 0
+        except:
+            pass
+
+        try:
+            if p2_health <= 0: sprite(screen, p2_x, p2_y, pos_x, pos_y, rotation, player2_norm, player2_norm_size)
+        except Exception as e:
+            print(f"Calling sprite render error: {e}")
+        
+        screen.blit(pist_shoot, ((screen_width/2)-260, 400))  if trigger else screen.blit(pist_norm, ((screen_width/2)-260, 400))
 
         dt = clock.tick() / 500
 
         if tim > 0 and trigger == True:
             tim = tim - dt
+        elif tim <= 0.15:
+            trigger = False 
+            tim = tim + dt
         else:
             trigger = False 
-            tim = 1
-
-        try:
-            p2_x = received_data[0]
-            p2_y = received_data[1]
-        except:
-            pass
-
-        try:
-            sprite(screen, p2_x, p2_y, pos_x, pos_y, rotation, barrel_texture, barrel_texture_size)
-        except Exception as e:
-            print(f"Calling sprite render error: {e}")
+            tim = 0.25
 
         pygame.display.update()
 
