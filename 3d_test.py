@@ -225,7 +225,7 @@ def main():
             pass
 
         try:
-            if p2_health <= 0: sprite(screen, p2_x, p2_y, pos_x, pos_y, rotation, player2_norm, player2_norm_size)
+            if p2_health >= 0: sprite(screen, p2_x, p2_y, pos_x, pos_y, rotation, player2_norm, player2_norm_size)
         except Exception as e:
             print(f"Calling sprite render error: {e}")
         
