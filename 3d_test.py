@@ -111,6 +111,7 @@ def main():
 
     ss = spritesheet.spritesheet('./hud/pistol.png')
     p2 = spritesheet.spritesheet('./hud/player2.png')
+    hd = spritesheet.spritesheet('./hud/hud.png')
     # Sprite is 16x16 pixels at location 0,0 in the file...
     #image = ss.image_at((0, 0, 82, 119), colorkey=(91, 110, 225))
     
@@ -120,8 +121,42 @@ def main():
     player2 = []
     player2 = p2.images_at([(0, 0, 90, 190),(0, 191, 90, 200)], colorkey=-1)
 
+    hud = []
+    hud = hd.images_at([(0, 0, 47, 32), (48, 0, 57, 32)], colorkey=None)
+
+    numbers = []
+    numbers = hd.images_at([(145, 32, 14, 16), (159, 32, 12, 16), (172, 32, 14, 16), (186, 32, 14, 16), (201, 32, 14, 16), (217, 32, 14, 16), (232, 32, 14, 16), (246, 32, 14, 16), (262, 32, 14, 16), (277, 32, 14, 16)], colorkey=-1)
+
     trigger = False
     tim = 0.25
+
+    timr = 3.5 + random.uniform(0.1, 0.75)
+
+    ammo_counter = pygame.transform.scale(hud[0], (150, 105))
+    health_counter = pygame.transform.scale(hud[1], (160, 105))
+
+    zero = pygame.transform.scale(numbers[0], (40, 50))
+    one = pygame.transform.scale(numbers[1], (40, 50))
+    two = pygame.transform.scale(numbers[2], (40, 50))
+    three = pygame.transform.scale(numbers[3], (40, 50))
+    four = pygame.transform.scale(numbers[4], (40, 50))
+    five = pygame.transform.scale(numbers[5], (40, 50))
+    six = pygame.transform.scale(numbers[6], (40, 50))
+    seven = pygame.transform.scale(numbers[7], (40, 50))
+    eight = pygame.transform.scale(numbers[8], (40, 50))
+    nine = pygame.transform.scale(numbers[9], (40, 50))
+
+    num = []
+    num.append(zero)
+    num.append(one)
+    num.append(two)
+    num.append(three)
+    num.append(four)
+    num.append(five)
+    num.append(six)
+    num.append(seven)
+    num.append(eight)
+    num.append(nine)
 
     pist_norm = pygame.transform.scale(pistol_hud[0], (320, 320))
     pist_shoot = pygame.transform.scale(pistol_hud[1], (320, 320))
@@ -131,6 +166,9 @@ def main():
 
     player2_shoot = pygame.transform.scale(player2[1], (180, 380))
     player2_shoot_size = np.asarray(player2_shoot.get_size())
+
+    ammo = 12
+    reload = False
 
     #Define a simple map where 1 is a wall, and 0 is open space
     map_data = np.array([
@@ -157,10 +195,14 @@ def main():
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
                 pause = not pause  #Toggle pause when P is pressed
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                if timr >= 1 and ammo < 12 and reload == False:
+                    reload = True
+                    timr = 1
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if tim >= 0.25:
+                if tim >= 0.25 and ammo > 0:
                     trigger = True 
-                    
+                    ammo -= 1
 
         try:
             game_state = [pos_x, pos_y, rotation, damage, health]   
@@ -229,7 +271,19 @@ def main():
         except Exception as e:
             print(f"Calling sprite render error: {e}")
         
-        screen.blit(pist_shoot, ((screen_width/2)-260, 400))  if trigger else screen.blit(pist_norm, ((screen_width/2)-260, 400))
+        if reload != True:
+            screen.blit(pist_shoot, ((screen_width/2)-260, 400))  if trigger else screen.blit(pist_norm, ((screen_width/2)-260, 400))
+
+
+        screen.blit(ammo_counter, (0, 615))
+        screen.blit(health_counter, (200, 615))
+
+        tens = ammo // 10
+        ones = ammo % 10
+
+        screen.blit(num[tens],(30, 635))
+        screen.blit(num[ones],(70, 635))
+
 
         dt = clock.tick() / 500
 
@@ -241,6 +295,14 @@ def main():
         else:
             trigger = False 
             tim = 0.25
+
+        if timr > 0 and reload == True:
+            timr = timr - dt
+        elif timr < 0.1 and reload == True:
+            reload = False 
+            ammo = 12
+            timr = 3 + random.uniform(0.1, 0.75)
+
 
         pygame.display.update()
 
@@ -522,13 +584,13 @@ def movement(posx, posy, rot, et, map_data):
 
     #Strafe left (A key)
     if pressed_keys[pygame.K_a]:
-        new_x, new_y = x + et * np.sin(rotation), y - et * np.cos(rotation)
+        new_x, new_y = x + et * np.sin(rotation) * 0.75, y - et * np.cos(rotation) * 0.75
         if not is_collision(new_x, new_y, map_data, padding):
             x, y = new_x, new_y
 
     #Strafe right (D key)
     if pressed_keys[pygame.K_d]:
-        new_x, new_y = x - et * np.sin(rotation), y + et * np.cos(rotation)
+        new_x, new_y = x - et * np.sin(rotation) * 0.75, y + et * np.cos(rotation) * 0.75
         if not is_collision(new_x, new_y, map_data, padding):
             x, y = new_x, new_y
 
