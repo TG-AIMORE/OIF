@@ -112,6 +112,8 @@ def main():
     ss = spritesheet.spritesheet('./hud/pistol.png')
     p2 = spritesheet.spritesheet('./hud/player2.png')
     hd = spritesheet.spritesheet('./hud/hud.png')
+    aim = pygame.image.load('./hud/crosshair.png')
+    aim = pygame.transform.scale(aim, (screen_width/2.5,screen_height/2.5))
     # Sprite is 16x16 pixels at location 0,0 in the file...
     #image = ss.image_at((0, 0, 82, 119), colorkey=(91, 110, 225))
     
@@ -169,6 +171,10 @@ def main():
 
     ammo = 12
     reload = False
+
+    global hitbx
+
+    hitbx = []
 
     #Define a simple map where 1 is a wall, and 0 is open space
     map_data = np.array([
@@ -266,6 +272,8 @@ def main():
         except:
             pass
 
+        screen.blit(aim, (370, 250))
+
         try:
             if p2_health >= 0: sprite(screen, p2_x, p2_y, pos_x, pos_y, rotation, player2_norm, player2_norm_size)
         except Exception as e:
@@ -273,6 +281,10 @@ def main():
         
         if reload != True:
             screen.blit(pist_shoot, ((screen_width/2)-260, 400))  if trigger else screen.blit(pist_norm, ((screen_width/2)-260, 400))
+            box = pygame.Rect(hitbx[3], hitbx[4], hitbx[1], hitbx[2])
+            if trigger == True and box.collidepoint(370+(screen_width/2.5), 250+(screen_height/2.5)):
+                print("HIT")
+                damage = 10
 
 
         screen.blit(ammo_counter, (0, 615))
@@ -284,6 +296,7 @@ def main():
         screen.blit(num[tens],(30, 635))
         screen.blit(num[ones],(70, 635))
 
+        
 
         dt = clock.tick() / 500
 
@@ -316,6 +329,7 @@ def main():
     pygame.quit()
 
 def sprite(screen, x, y, pos_x, pos_y, rotation, texture, texture_size):
+    global hitbx
     try:
         angle = np.arctan((y-pos_y)/(x-pos_x))
         if abs(pos_x+np.cos(angle)-x) > abs(pos_x-x):
@@ -329,6 +343,7 @@ def sprite(screen, x, y, pos_x, pos_y, rotation, texture, texture_size):
             hor = (screen_width/2) - screen_width*np.sin(anglediff) - scaling*texture_size[0]
             spsurf = pygame.transform.scale(texture, scaling*texture_size)
             screen.blit(spsurf, (hor, vert))
+            hitbx = [hor+(scaling*texture_size), vert+(scaling*texture_size), hor, vert]
     except Exception as e:
         print(f"Sprite render error: {e}")
 
