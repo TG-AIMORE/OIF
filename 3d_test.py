@@ -174,7 +174,7 @@ def main():
 
     global hitbx
 
-    hitbx = []
+    hitbx = [0, 0, 1, 1]
 
     #Define a simple map where 1 is a wall, and 0 is open space
     map_data = np.array([
