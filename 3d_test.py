@@ -281,10 +281,13 @@ def main():
         
         if reload != True:
             screen.blit(pist_shoot, ((screen_width/2)-260, 400))  if trigger else screen.blit(pist_norm, ((screen_width/2)-260, 400))
-            box = pygame.Rect(hitbx[3], hitbx[4], hitbx[1], hitbx[2])
-            if trigger == True and box.collidepoint(370+(screen_width/2.5), 250+(screen_height/2.5)):
-                print("HIT")
-                damage = 10
+            try:
+                box = pygame.Rect(hitbx[3], hitbx[4], hitbx[1], hitbx[2])
+                if trigger == True and box.collidepoint(370+(screen_width/2.5), 250+(screen_height/2.5)):
+                    print("HIT")
+                    damage = 10
+            except:
+                print('I cant code')
 
 
         screen.blit(ammo_counter, (0, 615))
